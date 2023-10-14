@@ -4,7 +4,7 @@ import sys
 
 sys.path.append("C:\\firm-resurs-miner\src")
 
-from settings import PATH
+import settings
 
 class DBManager:
     def __init__(self, base_path: str): #Функция, которая даёт возможность обращаться к базе данных в любом месте
@@ -41,4 +41,4 @@ class DBManager:
         connect.close()
         return res
 
-    db_manager = DBManager(default_path=settings.PATH)
+db_manager = DBManager(default_path=settings.PATH)
