@@ -1,0 +1,9 @@
+from typing import Optional
+from pydantic import BaseModel
+
+class BaseModelModify(BaseModel):
+    id: Optional[int]
+
+class Transport(BaseModelModify):
+    id_type: int
+    title: str
