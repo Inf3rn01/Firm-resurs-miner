@@ -1,44 +1,46 @@
 import sqlite3
 import os
-import sys
+import src.settings
 
-sys.path.append("C:\\firm-resurs-miner\src")
-
-import settings
 
 class DBManager:
-    def __init__(self, base_path: str): #Функция, которая даёт возможность обращаться к базе данных в любом месте
-        self.base_path = base_path
+    def __init__(self, default_path: str) -> None:
+        self.default_path = default_path
 
-    def db_connect(self) -> tuple[sqlite3.Connection, sqlite3.Cursor]: #Функция подключения базы данных
-        connection = sqlite3.connect(self.base_path, timeout=5)
-        cursor = connection.cursor()
-        return connection, cursor
+    def connect_to_db(self) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
+        conn = sqlite3.connect(self.default_path)
+        cur = conn.cursor()
+        return conn, cur
 
-    def check_base(self) -> bool: #Функция проверки базы данных
-        return os.path.exists(self.base_path)
+    def check_base(self) -> bool:
+        return os.path.exists(self.default_path)
 
-    def create_base(self, sql_file: str) -> None: #Функция создания базы данных (считывания с sql файла)
-        connect, cursor = self.db_connect()
-        if self.check_base():
-            cursor.executescript(open(sql_file).read())
-            connect.commit()
-            connect.close()
-
-    def execute(self, query: str, args: tuple[str] = (), many: bool = False): #Функция работы с базой данных
-        connect, cursor = self.db_connect()
+    def execute(self, query: str, args: tuple = (), many: bool = False) -> dict:
+        conn, cur = self.connect_to_db()
         try:
-            res_ctx = cursor.execute(query, args)
+            res = cur.execute(query, args)
             if many:
-                res = res_ctx.fetchall()
+                result = res.fetchall()
             else:
-                res = res_ctx.fetchone()
-        except sqlite3.Error as error:
-            print(error)
-            connect.close()
-            return {'error': error}
-        connect.commit()
-        connect.close()
-        return res
+                result = res.fetchone()
+        except sqlite3.Error as err:
+            conn.close()
+            return {"code": 400, "msg": str(err), "result": None}
+        conn.commit()
+        conn.close()
+        return {"code": 200, "msg": "Successfully", "result": result}
 
-db_manager = DBManager(default_path=settings.PATH)
+    def create_base(self, script_path_tables: str, script_path_data: str) -> None | dict:
+        conn, cur = self.connect_to_db()
+        if self.check_base():
+            try:
+                [cur.executescript(open(script_path).read()) for script_path in [script_path_tables, script_path_data]]
+                conn.commit()
+                conn.close()
+                return {"code": 200, "msg": "Successfully", "error": False, "result": None}
+            except sqlite3.Error as err:
+                conn.close()
+                return {"code": 400, "msg": str(err), "error": True, "result": None}
+
+
+db_manager = DBManager(default_path=src.settings.PATH)
